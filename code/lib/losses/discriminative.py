@@ -1,8 +1,37 @@
-from torch.nn.modules.loss import _assert_no_grad, _Loss
 from torch.autograd import Variable
 import torch
 import numpy as np
+from torch.nn import Module
 
+
+def _assert_no_grad(variable):
+    assert not variable.requires_grad, \
+        "nn criterions don't compute the gradient w.r.t. targets - please " \
+        "mark these variables as volatile or not requiring gradients"
+
+
+class _Loss(Module):
+
+    def __init__(self, size_average=True):
+        super(_Loss, self).__init__()
+        self.size_average = size_average
+
+    def forward(self, input, target):
+        _assert_no_grad(target)
+        backend_fn = getattr(self._backend, type(self).__name__)
+        return backend_fn(self.size_average)(input, target)
+
+
+class _WeightedLoss(_Loss):
+
+    def __init__(self, weight=None, size_average=True):
+        super(_WeightedLoss, self).__init__(size_average)
+        self.register_buffer('weight', weight)
+
+    def forward(self, input, target):
+        _assert_no_grad(target)
+        backend_fn = getattr(self._backend, type(self).__name__)
+        return backend_fn(self.size_average, weight=self.weight)(input, target)
 
 def calculate_means(pred, gt, n_objects, max_n_objects, usegpu):
     """pred: bs, height * width, n_filters
@@ -96,8 +125,8 @@ def calculate_distance_term(means, n_objects, delta_d, norm=2, usegpu=True):
         _norm = torch.norm(diff, norm, 2)
 
         margin = 2 * delta_d * (1.0 - torch.eye(_n_objects_sample))
-        if usegpu:
-            margin = margin.cuda()
+        # if usegpu:
+        #     margin = margin.cuda()
         margin = Variable(margin)
 
         _dist_term_sample = torch.sum(
@@ -144,7 +173,7 @@ def discriminative_loss(input, target, n_objects,
         bs, height * width, n_instances)
 
     cluster_means = calculate_means(
-        input, target, n_objects, max_n_objects, usegpu)
+        input, target, n_objects, max_n_objects, False)
 
     var_term = calculate_variance_term(
         input, target, cluster_means, n_objects, delta_v, norm)
@@ -164,8 +193,8 @@ class DiscriminativeLoss(_Loss):
         super(DiscriminativeLoss, self).__init__(size_average)
         self.reduce = reduce
 
-        assert self.size_average
-        assert self.reduce
+        #assert self.size_average
+        #assert self.reduce
 
         self.delta_var = float(delta_var)
         self.delta_dist = float(delta_dist)

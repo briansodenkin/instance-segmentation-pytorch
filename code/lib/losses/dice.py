@@ -1,10 +1,37 @@
-from torch.nn.modules.loss import _assert_no_grad, _Loss, _WeightedLoss
-from torch.nn import functional as F
+
+from torch.nn import functional as F, Module
 import torch
 import numpy as np
 
 # https://github.com/rogertrullo/pytorch/blob/rogertrullo-dice_loss/torch/nn/functional.py#L708
 
+def _assert_no_grad(variable):
+    assert not variable.requires_grad, \
+        "nn criterions don't compute the gradient w.r.t. targets - please " \
+        "mark these variables as volatile or not requiring gradients"
+
+class _Loss(Module):
+
+    def __init__(self, size_average=True):
+        super(_Loss, self).__init__()
+        self.size_average = size_average
+
+    def forward(self, input, target):
+        _assert_no_grad(target)
+        backend_fn = getattr(self._backend, type(self).__name__)
+        return backend_fn(self.size_average)(input, target)
+
+
+class _WeightedLoss(_Loss):
+
+    def __init__(self, weight=None, size_average=True):
+        super(_WeightedLoss, self).__init__(size_average)
+        self.register_buffer('weight', weight)
+
+    def forward(self, input, target):
+        _assert_no_grad(target)
+        backend_fn = getattr(self._backend, type(self).__name__)
+        return backend_fn(self.size_average, weight=self.weight)(input, target)
 
 def dice_coefficient(input, target, smooth=1.0):
     """input : is a torch variable of size BatchxnclassesxHxW representing
@@ -15,8 +42,7 @@ def dice_coefficient(input, target, smooth=1.0):
     assert input.size() == target.size(), 'Input sizes must be equal.'
     assert input.dim() == 4, 'Input must be a 4D Tensor.'
     uniques = np.unique(target.data.cpu().numpy())
-    assert set(list(uniques)) <= set(
-        [0, 1]), 'Target must only contain zeros and ones.'
+    assert set(list(uniques)) <= {0, 1}, 'Target must only contain zeros and ones.'
     assert smooth > 0, 'Smooth must be greater than 0.'
 
     probs = F.softmax(input, dim=1)

@@ -1,8 +1,8 @@
 import os
 import time
-import visdom
 from sklearn.manifold import TSNE
 import torch
+import visdom
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.autograd import Variable
@@ -105,7 +105,7 @@ class Model(object):
     def __define_criterion(self, class_weights, delta_var,
                            delta_dist, norm=2, optimize_bg=False,
                            criterion='CE'):
-        assert criterion in ['CE', 'Dice', 'Multi', None]
+        # assert criterion in ['CE', 'Dice', 'Multi', None]
 
         smooth = 1.0
 
@@ -315,6 +315,7 @@ class Model(object):
 
         n_minibatches = len(test_loader)
 
+
         test_iter = iter(test_loader)
 
         out_metrics = dict()
@@ -390,6 +391,7 @@ class Model(object):
             train_iter = iter(train_loader)
             n_minibatches = len(train_loader)
 
+
             train_out_metrics = dict()
 
             minibatch_index = 0
@@ -440,6 +442,7 @@ class Model(object):
 
             val_out_metrics = self.__test(
                 test_loader, criterion_type, epoch, debug)
+
             if self.use_instance_segmentation:
                 val_cost = val_out_metrics['Discriminative Cost']
                 train_cost = train_out_metrics['Discriminative Cost']

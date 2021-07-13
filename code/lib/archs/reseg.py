@@ -118,3 +118,4 @@ class ReSeg(nn.Module):
         ins_cls_out = self.ins_cls_cnn(x_enc)
 
         return sem_seg_out, ins_seg_out, ins_cls_out
+

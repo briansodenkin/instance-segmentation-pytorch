@@ -33,11 +33,11 @@ assert opt.dataset in ['CVPPP', ]
 
 if opt.dataset == 'CVPPP':
     from settings import CVPPPTrainingSettings
+
     ts = CVPPPTrainingSettings()
 
 
 def generate_run_id():
-
     username = getpass.getuser()
 
     now = datetime.datetime.now()
@@ -64,8 +64,7 @@ shutil.copytree(os.path.join(CODE_BASE_DIR, 'lib'),
                 os.path.join(model_save_path, 'lib'))
 
 if torch.cuda.is_available() and not opt.usegpu:
-    print 'WARNING: You have a CUDA device, so you should probably \
-        run with --usegpu'
+    print 'WARNING: You have a CUDA device, so you should probably run with --usegpu'
 
 # Load Seeds
 random.seed(ts.SEED)
@@ -140,6 +139,7 @@ model = Model(opt.dataset, ts.MODEL_NAME, ts.N_CLASSES, ts.MAX_N_OBJECTS,
               use_instance_segmentation=ts.USE_INSTANCE_SEGMENTATION,
               use_coords=ts.USE_COORDINATES, load_model_path=opt.model,
               usegpu=opt.usegpu)
+print 'START TRAINING THE MODEL'
 
 # Train Model
 model.fit(ts.CRITERION, ts.DELTA_VAR, ts.DELTA_DIST, ts.NORM, ts.LEARNING_RATE,
@@ -147,3 +147,5 @@ model.fit(ts.CRITERION, ts.DELTA_VAR, ts.DELTA_DIST, ts.NORM, ts.LEARNING_RATE,
           ts.LR_DROP_PATIENCE, ts.OPTIMIZE_BG, ts.OPTIMIZER, ts.TRAIN_CNN,
           opt.nepochs, ts.CLASS_WEIGHTS, train_loader, test_loader,
           model_save_path, opt.debug)
+
+print 'FINISHED TRAINING'
